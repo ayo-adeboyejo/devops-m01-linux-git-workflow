@@ -32,6 +32,37 @@ log() {
   fi
 }
 
+# Log an error and stop with exit code 2
+exit_with_error() {
+  log ERROR "$*"
+  exit 2
+}
+
+
+# Check the source can be backed up
+validate_source() {
+  local source_dir="$1"
+  [[ -e "${source_dir}" ]] || exit_with_error "Source not found: ${source_dir}"
+  [[ -d "${source_dir}" ]] || exit_with_error "Source is not a directory: ${source_dir}"
+  [[ -r "${source_dir}" && -x "${source_dir}" ]] || exit_with_error "Source is not readable: ${source_dir}"
+}
+
+
+
+# Check the destination is not in the source, then create it
+prepare_destination() {
+  local source_dir="$1"
+  local dest_dir="$2"
+  case "${dest_dir}/" in
+    "${source_dir}/"*) exit_with_error "Destination is inside the source directory: ${dest_dir}" ;;
+  esac
+  mkdir -p "${dest_dir}" || exit_with_error "Cannot create destination: ${dest_dir}"
+  [[ -w "${dest_dir}" ]] || exit_with_error "Destination is not writable: ${dest_dir}"
+}
+
+
+
+
 # main function
 main() {
   if [[ $# -lt 1 || $# -gt 2 ]]; then
