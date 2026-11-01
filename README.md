@@ -1,11 +1,45 @@
 # DevOps Module 1: Linux, Bash and Git Workflow
 
 A collaborative workflow built with Linux commands, a Bash backup script and Git.
-Practice assignment for Module 1 of my DevOps Engineering course.
+Practice assignment for Module 1 of DevOps Engineering course.
+
+## Contents
+
+| Path | Description |
+|---|---|
+| `scripts/backup.sh` | Backs up a directory to a timestamped, compressed archive and logs the result |
+
+## Requirements
+
+- Linux with Bash
+- `tar` and `gzip`
+- GNU coreutils (the script uses `realpath -m`)
+- Git
+
+## Quick start
+
+```bash
+git clone git@github.com:ayo-adeboyejo/devops-m01-linux-git-workflow.git
+cd devops-m01-linux-git-workflow
+./scripts/backup.sh <directory-to-back-up> [destination-directory]
+```
+
+- Backups are saved to `backups/` unless a destination is given.
+- Each run is logged to `logs/backup.log`.
+- Archives are created with owner-only permissions (`600`).
+
+### Exit codes
+
+| Code | Meaning |
+|---|---|
+| `0` | Backup completed and verified |
+| `1` | Wrong number of arguments |
+| `2` | A check failed or the backup could not be created |
+| `130` | Backup interrupted; any unfinished archive is removed |
 
 ## Branch workflow
 
-The `main` always holds working, reviewed code. A new feature is started on another branch. The following highlights steps to rake while creating and merging a branch with main. 
+`main` always holds working, reviewed code.
 
 1. Update `main`: `git switch main && git pull`
 2. Create a branch: `git switch -c <type>/<short-description>`
