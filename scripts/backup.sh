@@ -12,6 +12,9 @@ PROJECT_ROOT="$(dirname "${SCRIPT_DIR}")"
 LOG_DIR="${PROJECT_ROOT}/logs"
 LOG_FILE="${LOG_DIR}/backup.log"
 
+# Path of an in-progress archive, removed on exit if the backup didn't finish
+TEMP_PATH=""
+
 usage() {
   echo "Usage: ${SCRIPT_NAME} <source-dir> [destination-dir]" >&2
 }
@@ -33,6 +36,13 @@ log() {
 exit_with_error() {
   log ERROR "$*"
   exit 2
+}
+
+# Remove any unfinished archive; runs automatically whenever the script exits
+cleanup() {
+  if [[ -n "${TEMP_PATH}" && -e "${TEMP_PATH}" ]]; then
+    rm -f -- "${TEMP_PATH}"
+  fi
 }
 
 # Check the source can be backed up
@@ -58,26 +68,23 @@ prepare_destination() {
 create_backup() {
   local source_dir="$1"
   local dest_dir="$2"
-  local timestamp archive_name archive_path temp_path archive_size
+  local timestamp archive_name archive_path archive_size
 
   timestamp="$(date '+%Y%m%d_%H%M%S')"
   archive_name="$(basename "${source_dir}")_${timestamp}.tar.gz"
   archive_path="${dest_dir}/${archive_name}"
-  temp_path="${archive_path}.part"
+  TEMP_PATH="${archive_path}.part"
 
   [[ ! -e "${archive_path}" ]] || exit_with_error "Archive already exists: ${archive_path}"
 
-  if ! tar -czf "${temp_path}" -C "$(dirname "${source_dir}")" "$(basename "${source_dir}")"; then
-    rm -f -- "${temp_path}"
-    exit_with_error "tar failed while archiving: ${source_dir}"
-  fi
+  tar -czf "${TEMP_PATH}" -C "$(dirname "${source_dir}")" "$(basename "${source_dir}")" \
+    || exit_with_error "tar failed while archiving: ${source_dir}"
 
-  if ! tar -tzf "${temp_path}" > /dev/null; then
-    rm -f -- "${temp_path}"
-    exit_with_error "Archive failed verification: ${temp_path}"
-  fi
+  tar -tzf "${TEMP_PATH}" > /dev/null \
+    || exit_with_error "Archive failed verification: ${TEMP_PATH}"
 
-  mv -- "${temp_path}" "${archive_path}"
+  mv -- "${TEMP_PATH}" "${archive_path}"
+  TEMP_PATH=""
 
   archive_size="$(du -h -- "${archive_path}" | cut -f1)"
   log INFO "Backup OK: ${source_dir} -> ${archive_path} (${archive_size})"
@@ -89,7 +96,10 @@ main() {
     exit 1
   fi
 
-  # make new files and folders private to the owner
+  trap cleanup EXIT
+  trap 'log ERROR "Backup interrupted"; exit 130' INT TERM
+
+  # New files and folders are private to the owner (600 and 700)
   umask 077
 
   mkdir -p "${LOG_DIR}"
