@@ -48,6 +48,7 @@ cleanup() {
 # Check the source can be backed up
 validate_source() {
   local source_dir="$1"
+  [[ "${source_dir}" != "/" ]] || exit_with_error "Source is a root directory ${source_dir}"
   [[ -e "${source_dir}" ]] || exit_with_error "Source not found: ${source_dir}"
   [[ -d "${source_dir}" ]] || exit_with_error "Source is not a directory: ${source_dir}"
   [[ -r "${source_dir}" && -x "${source_dir}" ]] || exit_with_error "Source is not readable: ${source_dir}"
